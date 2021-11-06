@@ -1,76 +1,128 @@
+%%cu
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <omp.h>
+#include <time.h>
+#include <sys/time.h>
 #define K 5
-#define NUM_THREADS 4
 #define MAX_LINE_LEN 200
 
 
 void mySort(double* topKdistances, double* topKClasses);
 
-void mySortArray(double* arr, int len);
+__host__ __device__ void mySortArray(double* arr, int len);
 
 int mostFrequentLabel(double* classes);
 
-void insertValueInSorted(double* topKdistances, double* topKClasses, double newScore, double newLabel);
+__host__ __device__ void insertValueInSorted(double* topKdistances, double* topKClasses, double newScore, double newLabel);
 
-double getEuclideanDistance(double* query, double* target, int cols);
+__host__ __device__ double getEuclideanDistance(double* query, double* target, int cols);
 
 double** create2DArray(const int rows, const int cols);
 
 double** readData(const char* file_name, double** labels, int* rows, int* cols);
 
 
-
-
-
-
-int main()
+// Track CPU Time
+double cpuSecond()
 {
-
-	// omp_set_num_threads(NUM_THREADS);
-	const char* file_name = "trainnew_small.csv";
-	int rows, cols;
-	double* labels;
-	double** data = readData(file_name, &labels, &rows, &cols);
-
 	
-	double start = omp_get_wtime();
-	int countDiff = 0;
 
-	#pragma omp parallel for reduction(+: countDiff)
-	for (int i = 0; i < rows; i++)
-	{
-		double* predictions = (double*)malloc(rows * sizeof(double));
-		double* topKdistances = (double*)malloc(K * sizeof(double));
-		double* topKClasses = (double*)malloc(K * sizeof(double));
-		int curr_K = 0;
-		for (int j = 0; j < rows; j++)
-		{
-			if (i != j)
+    struct timeval tp;
+    gettimeofday(&tp, NULL);
+    return ((double)tp.tv_sec + (double)tp.tv_usec * 1.e-6);
+}
+
+
+__global__ void knnMain(double* labels, double** d_data, double* topKdistances, double* topKClasses, int curr_K, int d_i, int cols)
+// d_topKdistances, d_topKClasses, d_curr_K, d_i
+{
+    int j = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (d_i != j)
 			{
-				double distance = getEuclideanDistance(&data[i][0], &data[j][0], cols);
+				double distance = getEuclideanDistance(&d_data[d_i][0], &d_data[j][0], cols);
 
-				if (curr_K < K)
+				if (curr_K < 5)
 				{
 					topKClasses[curr_K] = labels[j];
 					topKdistances[curr_K] = distance;
-					curr_K++;
 				}
 				else
 				{
-					if (curr_K == K)
+					if (curr_K == 5)
 					{
-						mySort(topKdistances, topKClasses);
-						curr_K++;
+            for (int i = 1; i < 5; i++)
+            {
+              double key = topKdistances[i];
+              double keyClass = topKClasses[i];
+              int j = i - 1;
+              while (j >= 0 && topKdistances[j] < key)
+              {
+                topKdistances[j + 1] = topKdistances[j];
+                topKClasses[j + 1] = topKClasses[j];
+                j = j - 1;
+              }
+              topKdistances[j + 1] = key;
+              topKClasses[j + 1] = keyClass;
+            }
 					}
 
 					insertValueInSorted(topKdistances, topKClasses, distance, labels[j]);
 				}
 			}
-		}
+}
+
+
+int main()
+{
+
+printf("Start\n");
+    double start_time, round_time = 0;
+    double main_start_time;
+
+    main_start_time = cpuSecond();
+
+	const char* file_name = "/content/trainnew_small.csv";
+	int rows, cols;
+	double* labels;
+	double** data = readData(file_name, &labels, &rows, &cols);
+
+	
+	clock_t start = clock();
+	int countDiff = 0;
+
+    double **d_data;
+    cudaMalloc((double **)&d_data, rows * cols * sizeof(double));
+    double *d_predction;
+    double *d_topKdistances;
+    double *d_topKClasses;
+
+	double* d_labels;
+    cudaMalloc((double **)&d_labels, rows * cols * sizeof(double));
+
+	cudaMemcpy(d_data, data, rows * cols  * sizeof(double), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_labels, labels, rows * cols  * sizeof(double), cudaMemcpyHostToDevice);
+
+	for (int i = 0; i < rows; i++)
+	{
+		start_time = cpuSecond();
+
+		double* predictions = (double*)malloc(rows * sizeof(double));
+		double* topKdistances = (double*)malloc(K * sizeof(double));
+		double* topKClasses = (double*)malloc(K * sizeof(double));
+		
+		int curr_K = 0;
+
+    	cudaMemcpy(d_topKdistances, topKdistances, K  * sizeof(double), cudaMemcpyHostToDevice);
+    	cudaMemcpy(d_topKClasses, topKClasses, K  * sizeof(double), cudaMemcpyHostToDevice);
+
+		//Kernal Function
+        knnMain<<<ceil(rows / 2000), 2000>>>(d_labels, d_data, d_topKdistances, d_topKClasses, curr_K, i, cols);
+		
+		// cuda copy topKClasses back to host
+    	cudaMemcpy(d_topKdistances, topKdistances, K  * sizeof(double), cudaMemcpyDeviceToHost);
 
 		predictions[i] = mostFrequentLabel(topKClasses);
 
@@ -82,7 +134,7 @@ int main()
 		free(predictions);
 		free(topKClasses);
 		free(topKdistances);
-
+	 round_time += (cpuSecond() - start_time);
 
 
 	}
@@ -91,12 +143,15 @@ int main()
 
 
 	printf("Accuracy: %g\n", (rows - countDiff) / (double)rows);
-	printf("Total time taken is: %g sec\n", omp_get_wtime() - start);
+	// double timeTaken = ((double)clock() - start)/CLOCKS_PER_SEC;
+    // printf("Serial version took %g secs\n", timeTaken);
 
 	free(data[0]);
 	free(data);
 	free(labels);
-	
+	printf("Total Kernal Time : %f\n", round_time );
+    printf("Total Execution Time : %f\n",  cpuSecond() - main_start_time);
+    printf("\nEnd");
 	return 0;
 }
 

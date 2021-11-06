@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "*.php": "php",
+        "vector": "c",
+        "xstring": "c",
+        "xutility": "c"
+    }
+}

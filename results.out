@@ -1,0 +1,77 @@
+OPEN MP _>>>>>>>>>
+
+testing with 1 threads
+Accuracy: 1
+Total time taken is: 119.907 sec
+ 
+testing with 2 threads
+Accuracy: 1
+Total time taken is: 60.0334 sec
+ 
+testing with 4 threads
+Accuracy: 1
+Total time taken is: 30.0279 sec
+ 
+testing with 6 threads
+Accuracy: 1
+Total time taken is: 20.0299 sec
+ 
+testing with 8 threads
+Accuracy: 1
+Total time taken is: 15.1435 sec
+ 
+testing with 10 threads
+Accuracy: 1
+Total time taken is: 12.2987 sec
+ 
+testing with 12 threads
+Accuracy: 1
+Total time taken is: 10.4745 sec
+ 
+testing with 14 threads
+Accuracy: 1
+Total time taken is: 13.1217 sec
+ 
+testing with 16 threads
+Accuracy: 1
+Total time taken is: 11.4996 sec
+ 
+testing with 18 threads
+Accuracy: 1
+Total time taken is: 10.4965 sec
+ 
+testing with 20 threads
+Accuracy: 1
+Total time taken is: 10.8155 sec
+ 
+testing with 22 threads
+Accuracy: 1
+Total time taken is: 10.6256 sec
+ 
+testing with 24 threads
+Accuracy: 1
+Total time taken is: 10.1437 sec
+ 
+testing with 26 threads
+Accuracy: 1
+Total time taken is: 10.5904 sec
+ 
+testing with 28 threads
+Accuracy: 1
+Total time taken is: 11.0349 sec
+ 
+testing with 30 threads
+Accuracy: 1
+Total time taken is: 10.9879 sec
+ 
+testing with 32 threads
+Accuracy: 1
+Total time taken is: 10.8461 sec
+ 
+testing with 34 threads
+Accuracy: 1
+Total time taken is: 10.8485 sec
+ 
+testing with 36 threads
+Accuracy: 1
+Total time taken is: 10.9081 sec

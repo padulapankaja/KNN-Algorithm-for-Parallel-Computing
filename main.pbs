@@ -1,0 +1,21 @@
+#PBS -l nodes=1
+#PBS -l walltime=00:02:00
+#PBS -l select=1
+cat $PBS_NODEFILE
+cd $PBS_O_WORKDIR
+
+PROG=`basename $PBS_JOBNAME .pbs`
+
+thread_list='1 2 4 6 8 10 12 14 16 18 20 22 24 26 28 30 32 34 36'
+
+for thread in $thread_list
+do
+    echo " "
+    echo testing with $thread threads
+    export OMP_NUM_THREADS=$thread
+    ./main.o
+done
+# have a blank line
+
+
+
