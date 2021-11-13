@@ -1,4 +1,4 @@
-# KNN-PC-OPENMP
+# OpenMP MPI CUDA
 Parallel computing is the practice of solving any problem by utilizing several processing elements concurrently. Tasks are divided into instructions and solved simultaneously, as each resource applied to the task is utilized concurrently.
 
 Currently parallel computing become the trendy topic because of its usage so parallel computing need to because of
